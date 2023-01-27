@@ -2,12 +2,13 @@ from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
 from dataclasses import dataclass
 
-
+# Initialization
 db = SQLAlchemy()
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432'
 db.init_app(app)
 
+# Model
 @dataclass
 class Contact(db.Model):
     __tablename__ = 'contacts'
@@ -21,9 +22,12 @@ class Contact(db.Model):
 with app.app_context():
     db.create_all()
 
+# REST API
 @app.get("/contacts")
 def get_contacts():
-    contacts = db.session.execute(db.select(Contact)).scalars()
+    contacts = db.session.execute(
+        db.select(Contact)
+    ).scalars()
 
     if not contacts:
         return "No contacts found", 404
@@ -47,7 +51,11 @@ def create_contact():
         if "id" in contact:
             return "Cannot specify ID for new contact - did you mean to update with PUT?", 400
 
-        contact = db.session.execute(db.insert(Contact).returning(Contact), contact).scalar()
+        contact = db.session.execute(
+            db.insert(Contact).returning(Contact), 
+            contact
+        ).scalar()
+
         db.session.commit()
 
         return {"id": contact.id}, 201
@@ -62,7 +70,10 @@ def update_contact(id):
         if contact["id"] != id:
             return "ID in URL and body do not match", 500
         
-        db.session.execute(db.update(Contact), contact)
+        db.session.execute(
+            db.update(Contact), 
+            contact)
+
         db.session.commit()
 
         return {}, 201
@@ -72,6 +83,7 @@ def update_contact(id):
 @app.delete("/contacts/<int:id>")
 def delete_contact(id):
     contact = db.get_or_404(Contact, id)
+
     db.session.delete(contact)
     db.session.commit()
 
