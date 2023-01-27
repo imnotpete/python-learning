@@ -17,7 +17,7 @@ class Contact(db.Model):
     email:str = db.Column(db.String(40), nullable=False)
     phone:str = db.Column(db.String(10), nullable=False)
 
-# for testing - create blank database with our table(s)
+# for testing - create blank database with our table(s) if not already existing
 with app.app_context():
     db.create_all()
 
@@ -32,7 +32,7 @@ def get_contacts():
 
 @app.get("/contacts/<int:id>")
 def get_contact(id):
-    contact = db.session.execute(db.select(Contact).where(Contact.id==id)).scalar()
+    contact = db.get_or_404(Contact, id)
 
     if not contact:
         return "Contact not found", 404
@@ -69,7 +69,10 @@ def update_contact(id):
     
     return "error", 500
 
-# @app.delete("/contacts/<int:id>")
-# def delete_contact(id):
-#     contacts.pop(id)
-#     return {}, 201
+@app.delete("/contacts/<int:id>")
+def delete_contact(id):
+    contact = db.get_or_404(Contact, id)
+    db.session.delete(contact)
+    db.session.commit()
+
+    return {}, 201
