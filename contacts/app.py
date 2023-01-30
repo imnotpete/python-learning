@@ -1,12 +1,14 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
 from dataclasses import dataclass
+from flask_caching import Cache
 
 # Initialization
 db = SQLAlchemy()
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:password@localhost:5432'
+app.config.from_object('config.BaseConfig')
 db.init_app(app)
+cache = Cache(app)
 
 # Model
 @dataclass
@@ -24,6 +26,7 @@ with app.app_context():
 
 # REST API
 @app.get("/contacts")
+@cache.cached(timeout=30)
 def get_contacts():
     contacts = db.session.execute(
         db.select(Contact)
@@ -32,15 +35,18 @@ def get_contacts():
     if not contacts:
         return "No contacts found", 404
 
+    print("db contacts")
     return jsonify(list(contacts))
 
 @app.get("/contacts/<int:id>")
+@cache.cached(timeout=30)
 def get_contact(id):
     contact = db.get_or_404(Contact, id)
 
     if not contact:
         return "Contact not found", 404
 
+    print("db contacts")
     return jsonify(contact)
 
 @app.post("/contacts")
