@@ -1,9 +1,13 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import or_
 from flask import Flask, request, jsonify
 from dataclasses import dataclass
 from flask_caching import Cache
 
+################
 # Initialization
+################
+
 db = SQLAlchemy()
 app = Flask(__name__)
 app.config.from_object('config.BaseConfig')
@@ -24,12 +28,25 @@ class Contact(db.Model):
 with app.app_context():
     db.create_all()
 
+################
 # REST API
+################
+
 @app.get("/contacts")
-@cache.cached(timeout=30)
+@cache.cached(timeout=30, query_string=True)
 def get_contacts():
+    # optional
+    search = request.args.get("search")
+
+    statement = db.select(Contact)
+    if search:
+        search = f"%{search}%"
+        statement = statement.filter(or_(
+            Contact.name.ilike(search),
+            Contact.email.ilike(search)))
+
     contacts = db.session.execute(
-        db.select(Contact)
+        statement
     ).scalars()
 
     if not contacts:
